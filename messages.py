@@ -1,7 +1,7 @@
 from typing import List, Dict
 
 QUOTES_FOUND_TEMPLATE = "{} quotes found"
-QUOTE_TEMPLATE = "\"{}\"\n" \
+QUOTE_TEMPLATE = "{}\n" \
                  "~ {}\n" \
                  "{} Brain\n" \
                  "Submitted by {} on {}"
@@ -23,7 +23,7 @@ def format_quotes_found(count: int) -> str:
 def format_quotes(quotes: List[Dict]) -> str:
     res = ""
     for quote in quotes:
-        if res == "":
+        if res != "":
             res += "\n\n"
         res += f"{QUOTE(quote)}"
     return res
@@ -73,6 +73,7 @@ INCORRECT_TIME_FORMAT = "Incorrect time format. Please provide a time formatted 
 INVALID_HOUR = "The hour has to be between 00 and 23."
 INVALID_MINUTE = "The minute has to be between 00 and 59."
 NOT_SUBSCRIBED = "You are not subscribed to the quote of the day."
+LOADING = "loading..."
 QUOTES_FOUND = format_quotes_found
 QUOTES = format_quotes
 QUOTE = format_quote

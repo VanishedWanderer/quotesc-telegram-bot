@@ -1,3 +1,5 @@
+import logging
+
 from telegram.ext import Updater
 
 from utils import read_token

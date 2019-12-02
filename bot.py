@@ -2,19 +2,22 @@ import logging
 import random
 import re
 from datetime import time
-from typing import Dict, Tuple, Callable
+from typing import Dict, Tuple, Callable, Any
 
 import yaml
-from telegram import Update, InlineKeyboardButton, Bot
-from telegram.ext import CommandHandler, CallbackContext, Job
+from telegram import Update, InlineKeyboardButton, Bot, Message, InlineKeyboardMarkup, CallbackQuery
+from telegram.ext import CommandHandler, CallbackContext, Job, CallbackQueryHandler
+from telegram.utils.promise import Promise
 
 import restapiservice
 import messages
 from shared import updater, dispatcher
-from utils import send_async, command_handler
+from utils import send_async, command_handler, edit_async, query_handler
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 ADMIN_CHAT_ID = 450786643
+
+PAGE_SIZE = 5
 
 subscriptions: Dict[int, Tuple[Job, str]] = {}
 subscriptions_file = 'subscriptions.yml'
@@ -42,10 +45,19 @@ def save_subscriptions():
 
 
 def send_quote_of_the_day(chat_id: int, context: CallbackContext):
+    message_async: Promise = send_async(bot=context.bot,
+                                        chat_id=chat_id,
+                                        text=messages.LOADING)
+
     quote = restapiservice.get_quote_of_the_day()
-    send_async(bot=context.bot,
+
+    message: Message = message_async.result()
+    del message_async
+    edit_async(text=messages.QUOTE_OF_THE_DAY(quote),
+               bot=context.bot,
                chat_id=chat_id,
-               text=messages.QUOTE_OF_THE_DAY(quote))
+               message_id=message.message_id,
+               disable_web_page_preview=True)
 
 
 def send_quote_of_the_day_to_chat(chat_id: int) -> Callable[[CallbackContext], None]:
@@ -57,16 +69,43 @@ def send_quote_of_the_day_to_chat(chat_id: int) -> Callable[[CallbackContext], N
 
 @command_handler
 def quotes_handler(update: Update, context: CallbackContext):
+    message_async: Promise = send_async(bot=context.bot,
+                                        chat_id=update.message.chat_id,
+                                        text=messages.LOADING)
+
     count = restapiservice.get_quotes_count(context.args)
-    send_async(bot=context.bot,
+    pages = int((count + PAGE_SIZE - 1) / PAGE_SIZE)
+
+    message: Message = message_async.result()
+    edit_async(text=messages.QUOTES_FOUND(count),
+               bot=context.bot,
                chat_id=update.message.chat_id,
-               text=messages.QUOTES_FOUND(count))
+               message_id=message.message_id)
 
     if count > 0:
-        quotes = restapiservice.get_quotes(context.args)
-        send_async(bot=context.bot,
+        message_async: Promise = send_async(bot=context.bot,
+                                            chat_id=update.message.chat_id,
+                                            text=messages.LOADING)
+
+        quotes = restapiservice.get_quotes(context.args, 1, PAGE_SIZE)
+
+        markup = None
+        if pages > 1:
+            keyboard = [[InlineKeyboardButton(text="next",
+                                              callback_data=f'Q2;{pages}'),
+                         InlineKeyboardButton(text="last",
+                                              callback_data=f'Q{pages};{pages}')]]
+
+            markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+        message: Message = message_async.result()
+        del message_async
+
+        edit_async(text=messages.QUOTES(quotes),
+                   bot=context.bot,
                    chat_id=update.message.chat_id,
-                   text=messages.QUOTES(quotes))
+                   message_id=message.message_id,
+                   reply_markup=markup)
 
 
 @command_handler
@@ -163,17 +202,71 @@ def help_handler(update: Update, context: CallbackContext) -> None:
                text=messages.HELP)
 
 
+@query_handler
+def quotes_page_handler(update: Update, context: CallbackContext) -> None:
+    query: CallbackQuery = update.callback_query
+
+    edit_async(text=messages.LOADING,
+               bot=context.bot,
+               chat_id=query.message.chat_id,
+               message_id=query.message.message_id,
+               reply_markup=None)
+
+    page = int(query.data[1])
+    pages = int(query.data[3])
+
+    quotes = restapiservice.get_quotes(context.args, page, PAGE_SIZE)
+
+    buttons = []
+    if page > 1:
+        buttons.extend([InlineKeyboardButton(text="first",
+                                             callback_data=f'Q1;{pages}'),
+                       InlineKeyboardButton(text="previous",
+                                            callback_data=f'Q{page - 1};{pages}')])
+
+    if page < pages:
+        buttons.extend([InlineKeyboardButton(text="next",
+                                             callback_data=f'Q{page + 1};{pages}'),
+                        InlineKeyboardButton(text="last",
+                                             callback_data=f'Q{pages};{pages}')])
+
+    keyboard = [buttons]
+    markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+    edit_async(text=messages.QUOTES(quotes),
+               bot=context.bot,
+               chat_id=query.message.chat_id,
+               message_id=query.message.message_id,
+               reply_markup=markup)
+
+
+@query_handler
+def person_handler(update: Update, context: CallbackContext) -> None:
+    pass
+
+
 def error_handler(update: Update, context: CallbackContext) -> None:
     code = random.randint(1000, 10000)
-    request = update.message.text
-    username = update.message.from_user.name
-    send_async(bot=context.bot,
-               chat_id=ADMIN_CHAT_ID,
-               text=f"An error occurred for request {request} by user {username}.\n"
-                    f"Code: {code}")
-    logger.error(f"\nError code: {code}")
-    logger.error(f"Request: {request} by user {username}")
-    logger.exception(context.error)
+    logging.error(f"\nError code: {code}")
+    if update.message:
+        request = update.message.text
+        username = update.message.from_user.name
+        send_async(bot=context.bot,
+                   chat_id=ADMIN_CHAT_ID,
+                   text=f"An error occurred for request {request} by user {username}.\n"
+                        f"Code: {code}")
+        logging.error(f"Request: {request} by user {username}")
+    if update.callback_query:
+        query: CallbackQuery = update.callback_query
+        data = query.data
+        username = query.from_user.username
+        send_async(bot=context.bot,
+                   chat_id=ADMIN_CHAT_ID,
+                   text=f"An error occurred for query {data} by user {username}.\n"
+                        f"Code: {code}")
+        logging.error(f"Query: {data} by user {username}")
+
+    logging.exception(context.error)
+    logging.error(f"End of error: {code}")
 
 
 if __name__ == '__main__':
@@ -184,6 +277,10 @@ if __name__ == '__main__':
     dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe_handler))
     dispatcher.add_handler(CommandHandler('random', random_handler))
     dispatcher.add_handler(CommandHandler('help', help_handler))
+    dispatcher.add_handler(CallbackQueryHandler(callback=quotes_page_handler,
+                                                pattern=r'^Q'))
+    dispatcher.add_handler(CallbackQueryHandler(callback=person_handler,
+                                                pattern=r'^P'))
     dispatcher.add_error_handler(error_handler)
     updater.start_polling()
     updater.idle()
