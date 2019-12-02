@@ -3,6 +3,8 @@ from typing import List, Dict
 
 import requests
 
+ACCEPT_APPLICATION_JSON = {'Accept': 'application/json'}
+CONTENT_TYPE_APPLICATION_JSON = {'Content-Type': 'application/json'}
 BASE_URL = 'http://localhost:3001'
 QUOTES_PATH = '/quotes'
 QUOTES_COUNT_PATH = '/count'
@@ -11,16 +13,17 @@ QUOTE_OF_THE_DAY_PATH = '/quoteoftheday'
 PERSONS_PATH = '/persons'
 
 
-def get_quotes_count(filters: List[str] = '') -> int:
-    response = requests.get(BASE_URL + QUOTES_COUNT_PATH)
+def get_quotes_count(filters: List[str] = None) -> int:
+    response = requests.get(url=BASE_URL + QUOTES_COUNT_PATH,
+                            headers=ACCEPT_APPLICATION_JSON)
     if response.ok:
-        count = json.loads(response.content)
+        count = response.json()
         return count['count']
     else:
         response.raise_for_status()
 
 
-def get_quotes(filters: List[str] = '', page: int = 1, count: int = 0) -> List[Dict]:
+def get_quotes(filters: List[str] = None, page: int = 1, count: int = 0) -> List[Dict]:
     params = {
         '_page': page,
         '_limit': count
@@ -28,34 +31,45 @@ def get_quotes(filters: List[str] = '', page: int = 1, count: int = 0) -> List[D
     response = requests.get(url=BASE_URL + QUOTES_PATH,
                             params=params)
     if response.ok:
-        quotes = json.loads(response.content)
+        quotes = response.json()
         return quotes
     else:
         response.raise_for_status()
 
 
-def get_quote_random(filters: List[str] = '') -> Dict:
-    response = requests.get(BASE_URL + QUOTES_RANDOM_PATH)
+def get_quote_random(filters: List[str] = None) -> Dict:
+    response = requests.get(url=BASE_URL + QUOTES_RANDOM_PATH,
+                            headers=ACCEPT_APPLICATION_JSON)
     if response.ok:
-        quote = json.loads(response.content)
+        quote = response.json()
         return quote
     else:
         response.raise_for_status()
 
 
 def get_quote_of_the_day() -> Dict:
-    response = requests.get(BASE_URL + QUOTE_OF_THE_DAY_PATH)
+    response = requests.get(url=BASE_URL + QUOTE_OF_THE_DAY_PATH,
+                            headers=ACCEPT_APPLICATION_JSON)
     if response.ok:
-        quote = json.loads(response.content)
+        quote = response.json()
         return quote
     else:
         response.raise_for_status()
 
 
-def get_persons() -> List[Dict]:
-    response = requests.get(BASE_URL + PERSONS_PATH)
+def get_persons(filters: List[str] = None) -> List[Dict]:
+    response = requests.get(url=BASE_URL + PERSONS_PATH,
+                            headers=ACCEPT_APPLICATION_JSON)
     if response.ok:
-        persons = json.loads(response.content)
+        persons = response.json()
         return persons
     else:
+        response.raise_for_status()
+
+
+def post_quote(quote: Dict) -> None:
+    response = requests.post(url=BASE_URL + QUOTES_PATH,
+                             data=json.dumps(quote),
+                             headers=CONTENT_TYPE_APPLICATION_JSON)
+    if not response.ok:
         response.raise_for_status()
