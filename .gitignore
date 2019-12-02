@@ -1,6 +1,9 @@
 .idea
+administrators.yml
+blacklist.yml
 subscriptions.yml
 token.txt
+whitelist.yml
 
 
 # Created by https://www.gitignore.io/api/python,pycharm,jetbrains

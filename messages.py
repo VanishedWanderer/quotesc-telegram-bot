@@ -1,17 +1,21 @@
 from typing import List, Dict
 
-QUOTES_FOUND_TEMPLATE = "{} quotes found"
+QUOTES_FOUND_TEMPLATE = "{} quotes found."
 QUOTE_TEMPLATE = "{}\n" \
                  "~ {}\n" \
                  "{} Brain\n" \
-                 "Submitted by {} on {}"
+                 "Submitted by {} on {}."
 QUOTE_OF_THE_DAY_TEMPLATE = "The quote of the day!\n" \
                             "{}"
 ALREADY_SUBSCRIBED_TEMPLATE = "You are already subscribed to the quote of the day at {}."
 SUBSCRIPTION_REMOVED_TEMPLATE = "Your subscription for {} was removed."
 SUBSCRIPTION_SUCCESSFUL_TEMPLATE = "You will receive the quote of the day every day at {}."
-ERROR_TEMPLATE = "An error occurred for request {} by user {}.\n" \
-                 "Code: {}"
+ERROR_COMMAND_TEMPLATE = "An error occurred for command {} by user {}.\n" \
+                                  "Code: {}"
+ERROR_QUERY_TEMPLATE = "An error occurred for query {} by user {}.\n" \
+                                "Code: {}"
+NO_PERMISSION_REPORT_TEMPLATE = "User {} tried to execute {} without admin privileges."
+WHITELIST_REQUEST_TEMPLATE = "User {} with user id {} wants to be whitelisted."
 
 
 def format_quotes_found(count: int) -> str:
@@ -58,11 +62,23 @@ def format_subscription_successful(time: str) -> str:
     return SUBSCRIPTION_SUCCESSFUL_TEMPLATE.format(time)
 
 
-def format_error(request: str, username: str, code: int) -> str:
-    return ERROR_TEMPLATE.format(request, username, code)
+def format_error_command(command: str, username: str, code: int) -> str:
+    return ERROR_COMMAND_TEMPLATE.format(command, username, code)
 
 
-ERROR_OCCURRED = "An error occurred. This problem will be automatically reported to the administrator."
+def format_error_query(data: str, username: str, code: int) -> str:
+    return ERROR_QUERY_TEMPLATE.format(data, username, code)
+
+
+def format_no_permission_report(username: str, command: str) -> str:
+    return NO_PERMISSION_REPORT_TEMPLATE.format(username, command)
+
+
+def format_whitelist_request(username: str, user_id: int) -> str:
+    return WHITELIST_REQUEST_TEMPLATE.format(username, user_id)
+
+
+ERROR_OCCURRED = "An error occurred. This problem will be automatically reported to the administrators."
 HELP = \
     """
     yeet
@@ -73,6 +89,18 @@ INCORRECT_TIME_FORMAT = "Incorrect time format. Please provide a time formatted 
 INVALID_HOUR = "The hour has to be between 00 and 23."
 INVALID_MINUTE = "The minute has to be between 00 and 59."
 NOT_SUBSCRIBED = "You are not subscribed to the quote of the day."
+NO_PERMISSION = "You do not have permission to do that. This will be reported to the administrators."
+WHITELIST_REQUEST_DENIED = "Your whitelist request was denied by an administrator. " \
+                           "Please contact an administrator if you do not know why."
+WHITELIST_REQUEST_ACCEPTED = "Your whitelist request was accepted by an administrator."
+NOT_WHITELISTED = "You are not whitelisted. A whitelist request will be sent to the administrators."
+BLACKLISTED = "You are blacklisted. Please contact an administrator if you do not know why."
+NO_USER_ID_ARGUMENT = "Please specify the id of the user you want to whitelist."
+ALREADY_WHITELISTED = "User is already whitelisted."
+ALREADY_BLACKLISTED = "User is already blacklisted."
+USER_BLACKLISTED = "User was blacklisted."
+USER_WHITELISTED = "User was whitelisted."
+CANNOT_BLACKLIST_ADMINISTRATOR = "You cannot blacklist an administrator."
 LOADING = "loading..."
 QUOTES_FOUND = format_quotes_found
 QUOTES = format_quotes
@@ -81,4 +109,7 @@ QUOTE_OF_THE_DAY = format_quote_of_the_day
 ALREADY_SUBSCRIBED = format_already_subscribed
 SUBSCRIPTION_REMOVED = format_subscription_removed
 SUBSCRIPTION_SUCCESSFUL = format_subscription_successful
-ERROR = format_error
+ERROR_COMMAND = format_error_command
+ERROR_QUERY = format_error_query
+NO_PERMISSION_REPORT = format_no_permission_report
+WHITELIST_REQUEST = format_whitelist_request
