@@ -6,13 +6,14 @@ from typing import Dict, Tuple, Callable
 
 import yaml
 from telegram import Update, InlineKeyboardButton, Message, InlineKeyboardMarkup, CallbackQuery
+from telegram.error import Unauthorized
 from telegram.ext import CommandHandler, CallbackContext, Job, CallbackQueryHandler, Updater
 from telegram.utils.promise import Promise
 
 import restapiservice
 import messages
 from utils import send_async, command_handler, edit_async, query_handler, send_admins_async, admin_command_handler, \
-    whitelist, blacklist, admin_query_handler, remove_markup, is_whitelisted, is_blacklisted
+    whitelist, blacklist, admin_query_handler, remove_markup
 
 logging.basicConfig(level=logging.INFO)
 
@@ -112,6 +113,34 @@ def quote_of_the_day_handler(update: Update, context: CallbackContext):
 
 
 @command_handler
+def persons_handler(update: Update, context: CallbackContext):
+    message_async: Promise = send_async(bot=context.bot,
+                                        chat_id=update.message.chat_id,
+                                        text=messages.LOADING)
+
+    persons = restapiservice.get_persons(context.args)
+    count = len(persons)
+
+    markup = None
+
+    if count > 0:
+        keyboard = []
+        for person in persons:
+            person_id = person['id']
+            first_name = person['firstName']
+            last_name = person['lastName']
+            keyboard.append([InlineKeyboardButton(text=f"{first_name} {last_name}",
+                                                  callback_data=f'P{person_id}')])
+        markup = InlineKeyboardMarkup(keyboard)
+
+    message: Message = message_async.result()
+    edit_async(text=messages.PERSONS_FOUND(count),
+               bot=context.bot,
+               message=message,
+               reply_markup=markup)
+
+
+@command_handler
 def subscribe_handler(update: Update, context: CallbackContext):
     if len(context.args) != 1:
         send_async(bot=context.bot,
@@ -186,10 +215,18 @@ def unsubscribe_handler(update: Update, context: CallbackContext):
 
 @command_handler
 def random_handler(update: Update, context: CallbackContext):
+    message_async: Promise = send_async(bot=context.bot,
+                                        chat_id=update.message.chat_id,
+                                        text=messages.LOADING)
+
     quote = restapiservice.get_quote_random(context.args)
-    send_async(bot=context.bot,
-               chat_id=update.message.chat_id,
-               text=str(quote))
+
+    message: Message = message_async.result()
+    del message_async
+    edit_async(text=messages.QUOTE(quote),
+               bot=context.bot,
+               message=message,
+               disable_web_page_preview=True)
 
 
 @command_handler
@@ -273,27 +310,15 @@ def accept_handler(update: Update, context: CallbackContext) -> None:
     query: CallbackQuery = update.callback_query
     [user_id, chat_id] = [int(x) for x in query.data[1:].split(';')]
 
-    remove_markup(bot=context.bot,
-                  message=query.message)
+    #remove_markup(bot=context.bot,
+    #              message=query.message)
 
-    if is_whitelisted(user_id=user_id):
+    if whitelist(user_id=user_id,
+                 chat_id=query.message.chat_id,
+                 context=context):
         send_async(bot=context.bot,
                    chat_id=chat_id,
-                   text=messages.ALREADY_WHITELISTED)
-        return
-    if is_blacklisted(user_id=user_id):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.ALREADY_BLACKLISTED)
-        return
-
-    whitelist(user_id=user_id,
-              chat_id=query.message.chat_id,
-              context=context)
-
-    send_async(bot=context.bot,
-               chat_id=chat_id,
-               text=messages.WHITELIST_REQUEST_ACCEPTED)
+                   text=messages.WHITELIST_REQUEST_ACCEPTED)
 
 
 @admin_query_handler
@@ -304,24 +329,12 @@ def deny_handler(update: Update, context: CallbackContext) -> None:
     remove_markup(bot=context.bot,
                   message=query.message)
 
-    if is_whitelisted(user_id=user_id):
+    if blacklist(user_id=user_id,
+                 chat_id=query.message.chat_id,
+                 context=context):
         send_async(bot=context.bot,
                    chat_id=chat_id,
-                   text=messages.ALREADY_WHITELISTED)
-        return
-    if is_blacklisted(user_id=user_id):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.ALREADY_BLACKLISTED)
-        return
-
-    blacklist(user_id=user_id,
-              chat_id=query.message.chat_id,
-              context=context)
-
-    send_async(bot=context.bot,
-               chat_id=chat_id,
-               text=messages.WHITELIST_REQUEST_DENIED)
+                   text=messages.WHITELIST_REQUEST_DENIED)
 
 
 def error_handler(update: Update, context: CallbackContext) -> None:
@@ -349,10 +362,12 @@ if __name__ == '__main__':
     with open(token_file) as t_file:
         token = t_file.readline()
     updater = Updater(token=token, use_context=True)
+    del token
     dispatcher = updater.dispatcher
     load_subscriptions()
     dispatcher.add_handler(CommandHandler('quotes', quotes_handler))
     dispatcher.add_handler(CommandHandler('quoteoftheday', quote_of_the_day_handler))
+    dispatcher.add_handler(CommandHandler('persons', persons_handler))
     dispatcher.add_handler(CommandHandler('subscribe', subscribe_handler))
     dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe_handler))
     dispatcher.add_handler(CommandHandler('random', random_handler))
@@ -368,5 +383,9 @@ if __name__ == '__main__':
     dispatcher.add_handler(CallbackQueryHandler(callback=deny_handler,
                                                 pattern=r'^D'))
     dispatcher.add_error_handler(error_handler)
-    updater.start_polling()
-    updater.idle()
+    try:
+        updater.start_polling()
+        logging.info("Successfully started polling.")
+        updater.idle()
+    except Unauthorized as err:
+        logging.error("Your token seems to be incorrect, bot was not able to start polling.")

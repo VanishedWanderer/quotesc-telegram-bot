@@ -1,6 +1,7 @@
 from typing import List, Dict
 
 QUOTES_FOUND_TEMPLATE = "{} quotes found."
+PERSONS_FOUND_TEMPLATE = "{} persons found."
 QUOTE_TEMPLATE = "{}\n" \
                  "~ {}\n" \
                  "{} Brain\n" \
@@ -22,6 +23,12 @@ def format_quotes_found(count: int) -> str:
     if count == 0:
         return QUOTES_FOUND_TEMPLATE.format("No")
     return QUOTES_FOUND_TEMPLATE.format(count)
+
+
+def format_persons_found(count: int) -> str:
+    if count == 0:
+        return PERSONS_FOUND_TEMPLATE.format("No")
+    return PERSONS_FOUND_TEMPLATE.format(count)
 
 
 def format_quotes(quotes: List[Dict]) -> str:
@@ -101,8 +108,10 @@ ALREADY_BLACKLISTED = "User is already blacklisted."
 USER_BLACKLISTED = "User was blacklisted."
 USER_WHITELISTED = "User was whitelisted."
 CANNOT_BLACKLIST_ADMINISTRATOR = "You cannot blacklist an administrator."
+PENDING = "Your whitelist request has to be accepted by an administrator before you can interact with this bot."
 LOADING = "loading..."
 QUOTES_FOUND = format_quotes_found
+PERSONS_FOUND = format_persons_found
 QUOTES = format_quotes
 QUOTE = format_quote
 QUOTE_OF_THE_DAY = format_quote_of_the_day

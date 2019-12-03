@@ -1,105 +1,96 @@
 import logging
 from typing import Union, Callable, List
 
-from telegram import Bot, InlineKeyboardMarkup, Update, Message, User, InlineKeyboardButton, ReplyKeyboardMarkup, \
-    ReplyMarkup
+from telegram import Bot, InlineKeyboardMarkup, Update, Message, User, InlineKeyboardButton, ReplyMarkup
 from telegram.ext import CallbackContext
 from telegram.ext.dispatcher import run_async
 
 import messages
 
-
 administrators_file = 'administrators.yml'
 blacklist_file = 'blacklist.yml'
 whitelist_file = 'whitelist.yml'
+requests_file = 'requests.yml'
 
 
-def read_administrators() -> List[int]:
-    with open(administrators_file) as a_file:
-        return [int(line) for line in a_file.readlines()]
+def read(filename: str) -> List[int]:
+    with open(filename) as file:
+        return [int(line) for line in file.readlines()]
 
 
-def read_blacklist() -> List[int]:
-    with open(blacklist_file) as b_file:
-        return [int(line) for line in b_file.readlines()]
+def append(filename: str, user_id: int) -> None:
+    with open(filename) as file:
+        user_ids = file.readlines()
+    user_ids.append(str(user_id) + '\n')
+    with open(filename, 'w') as file:
+        file.writelines(user_ids)
 
 
-def append_blacklist(user_id: int) -> None:
-    with open(blacklist_file, 'a') as b_file:
-        b_file.write(str(user_id))
+def remove(filename: str, user_id: int) -> None:
+    with open(filename, 'r') as file:
+        user_ids = file.readlines()
+    user_ids.remove(str(user_id) + '\n')
+    with open(filename, 'w') as file:
+        file.writelines(user_ids)
 
 
-def remove_blacklist(user_id: int) -> None:
-    with open(blacklist_file, 'r') as b_file:
-        user_ids = b_file.readlines()
-    user_ids.remove(str(user_id))
-    with open(blacklist_file, 'w') as b_file:
-        b_file.writelines(user_ids)
-
-
-def read_whitelist() -> List[int]:
-    with open(whitelist_file) as w_file:
-        return [int(line) for line in w_file.readlines()]
-
-
-def append_whitelist(user_id: int) -> None:
-    with open(whitelist_file, 'a') as w_file:
-        w_file.write(str(user_id))
-
-
-def remove_whitelist(user_id: int) -> None:
-    with open(whitelist_file) as w_file:
-        user_ids = w_file.readlines()
-    user_ids.remove(str(user_id))
-    with open(whitelist_file, 'w') as w_file:
-        w_file.writelines(user_ids)
-
-
-def whitelist(user_id: int, chat_id: int, context: CallbackContext):
-    if user_id in read_whitelist() or user_id in read_administrators():
+def whitelist(user_id: int, chat_id: int, context: CallbackContext) -> bool:
+    if user_id in read(whitelist_file) or user_id in read(administrators_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.ALREADY_WHITELISTED)
-        return
+        return False
 
-    if user_id in read_blacklist():
-        remove_blacklist(user_id=user_id)
+    if user_id in read(blacklist_file):
+        remove(filename=blacklist_file,
+               user_id=user_id)
 
-    append_whitelist(user_id=user_id)
+    append(filename=whitelist_file,
+           user_id=user_id)
 
     send_async(bot=context.bot,
                chat_id=chat_id,
                text=messages.USER_WHITELISTED)
 
+    return True
 
-def blacklist(user_id: int, chat_id: int, context: CallbackContext):
-    if user_id in read_administrators():
+
+def blacklist(user_id: int, chat_id: int, context: CallbackContext) -> bool:
+    if user_id in read(administrators_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.CANNOT_BLACKLIST_ADMINISTRATOR)
-        return
+        return False
 
-    if user_id in read_blacklist():
+    if user_id in read(blacklist_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.ALREADY_BLACKLISTED)
-        return
+        return False
 
-    if user_id in read_whitelist():
-        remove_whitelist(user_id=user_id)
+    if user_id in read(whitelist_file):
+        remove(filename=whitelist_file,
+               user_id=user_id)
 
-    append_blacklist(user_id=user_id)
+    append(filename=blacklist_file,
+           user_id=user_id)
 
     send_async(bot=context.bot,
                chat_id=chat_id,
                text=messages.USER_BLACKLISTED)
 
+    return True
+
 
 def is_authorized(user: User, chat_id: int, context: CallbackContext) -> bool:
     user_id = user.id
-    if user_id in read_administrators() or user_id in read_whitelist():
+    if user_id in read(administrators_file) or user_id in read(whitelist_file):
         return True
-    if user_id in read_blacklist():
+    if user_id in read(requests_file):
+        send_async(bot=context.bot,
+                   chat_id=chat_id,
+                   text=messages.PENDING)
+    elif user_id in read(blacklist_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.BLACKLISTED)
@@ -107,6 +98,8 @@ def is_authorized(user: User, chat_id: int, context: CallbackContext) -> bool:
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.NOT_WHITELISTED)
+        append(filename=requests_file,
+               user_id=user_id)
         username = user.username
         keyboard = [[InlineKeyboardButton("Deny", callback_data=f"D{user_id};{chat_id}"),
                      InlineKeyboardButton("Accept", callback_data=f"A{user_id};{chat_id}")]]
@@ -119,11 +112,11 @@ def is_authorized(user: User, chat_id: int, context: CallbackContext) -> bool:
 
 
 def is_whitelisted(user_id: int):
-    return user_id in read_whitelist()
+    return user_id in read(whitelist_file)
 
 
 def is_blacklisted(user_id: int):
-    return user_id in read_blacklist()
+    return user_id in read(blacklist_file)
 
 
 def command_handler(handler: Callable[[Update, CallbackContext], None]) -> Callable[[Update, CallbackContext], None]:
@@ -135,9 +128,10 @@ def command_handler(handler: Callable[[Update, CallbackContext], None]) -> Calla
             if is_authorized(update.message.from_user, update.message.chat_id, context):
                 handler(update, context)
         except Exception as err:
-            send_async(bot=context.bot,
-                       chat_id=update.message.chat_id,
-                       text=messages.ERROR_OCCURRED)
+            if update.message.from_user.id not in read(administrators_file):
+                send_async(bot=context.bot,
+                           chat_id=update.callback_query.message.chat_id,
+                           text=messages.ERROR_OCCURRED)
             raise err
 
     return func
@@ -150,9 +144,10 @@ def query_handler(handler: Callable[[Update, CallbackContext], None]) -> Callabl
             if is_authorized(update.callback_query.from_user, update.callback_query.message.chat_id, context):
                 handler(update, context)
         except Exception as err:
-            send_async(bot=context.bot,
-                       chat_id=update.callback_query.message.chat_id,
-                       text=messages.ERROR_OCCURRED)
+            if update.callback_query.from_user.id not in read(administrators_file):
+                send_async(bot=context.bot,
+                           chat_id=update.callback_query.message.chat_id,
+                           text=messages.ERROR_OCCURRED)
             raise err
 
     return func
@@ -162,7 +157,7 @@ def admin_command_handler(handler: Callable[[Update, CallbackContext], None]) \
         -> Callable[[Update, CallbackContext], None]:
     @command_handler
     def func(update: Update, context: CallbackContext):
-        if update.message.chat_id in read_administrators():
+        if update.message.chat_id in read(administrators_file):
             handler(update, context)
         else:
             send_async(bot=context.bot,
@@ -181,7 +176,7 @@ def admin_query_handler(handler: Callable[[Update, CallbackContext], None]) \
         -> Callable[[Update, CallbackContext], None]:
     @query_handler
     def func(update: Update, context: CallbackContext):
-        if update.callback_query.message.chat_id in read_administrators():
+        if update.callback_query.message.chat_id in read(administrators_file):
             handler(update, context)
         else:
             send_async(bot=context.bot,
@@ -199,7 +194,7 @@ def admin_query_handler(handler: Callable[[Update, CallbackContext], None]) \
 def send_admins_async(text: str,
                       context: CallbackContext,
                       reply_markup: InlineKeyboardMarkup = None):
-    for chat_id in read_administrators():
+    for chat_id in read(administrators_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=text,
