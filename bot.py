@@ -431,7 +431,7 @@ if __name__ == '__main__':
                                                 pattern=r'^D'))
     dispatcher.add_error_handler(error_handler)
     dispatcher.add_handler(MessageHandler(Filters.command, unknown_handler))
-    dispatcher.add_handler(MessageHandler(Filters.all, top_secret_handler))
+    dispatcher.add_handler(MessageHandler(Filters.text, top_secret_handler))
     try:
         updater.start_polling()
         logging.info("Successfully started polling.")

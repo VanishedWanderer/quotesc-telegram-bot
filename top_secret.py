@@ -1,9 +1,11 @@
+import logging
 from typing import Dict
 
 import yaml
 from telegram import Update
 from telegram.ext import CallbackContext
 
+import messages
 from utils import send_async
 
 secrets_file = 'secrets.yml'
@@ -21,6 +23,7 @@ def top_secret_handler(update: Update, context: CallbackContext) -> None:
     text: str = update.message.text
     secrets = read(secrets_file)
     if text.lower() in secrets:
+        logging.info(f"{messages.USERNAME(update.message.from_user)} discovered secret {text}!")
         send_async(bot=context.bot,
                    chat_id=update.message.chat_id,
                    text=secrets[text.lower()])
