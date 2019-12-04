@@ -64,7 +64,7 @@ def format_quote(quote: Dict) -> str:
         quoted_persons += f"{person['firstName']} {person['lastName']}"
     brain = int(quote['brain'])
     quoter = f"{quote['quoter']['firstName']} {quote['quoter']['lastName']}"
-    date = quote["date"].replace('-', '/')
+    date = quote['date'].replace('-', '/')
     return QUOTE_TEMPLATE.format(text, quoted_persons, brain, quoter, date)
 
 

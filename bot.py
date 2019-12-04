@@ -20,7 +20,7 @@ from utils import send_text_async, command_handler, edit_async, query_handler, s
 logging.basicConfig(
     level=logging.INFO,
     handlers=[
-        logging.FileHandler("bot.log"),
+        logging.FileHandler('bot.log', encoding='utf-8'),
         logging.StreamHandler()
     ])
 
