@@ -13,8 +13,8 @@ from telegram.utils.promise import Promise
 
 import messages
 import restapiservice
-from top_secret import top_secret_handler
-from utils import send_async, command_handler, edit_async, query_handler, send_admins_async, admin_command_handler, \
+from top_secret import top_secret_text_handler, top_secret_sticker_handler
+from utils import send_text_async, command_handler, edit_async, query_handler, send_admins_async, admin_command_handler, \
     whitelist, blacklist, admin_query_handler, remove_markup
 
 logging.basicConfig(
@@ -53,9 +53,9 @@ def save_subscriptions() -> None:
 
 
 def send_quote_of_the_day(chat_id: int, context: CallbackContext) -> None:
-    message_async: Promise = send_async(bot=context.bot,
-                                        chat_id=chat_id,
-                                        text=messages.LOADING)
+    message_async: Promise = send_text_async(bot=context.bot,
+                                             chat_id=chat_id,
+                                             text=messages.LOADING)
 
     quote = restapiservice.get_quote_of_the_day()
 
@@ -76,9 +76,9 @@ def send_quote_of_the_day_to_chat(chat_id: int) -> Callable[[CallbackContext], N
 
 @command_handler
 def quotes_handler(update: Update, context: CallbackContext) -> None:
-    message_async: Promise = send_async(bot=context.bot,
-                                        chat_id=update.message.chat_id,
-                                        text=messages.LOADING)
+    message_async: Promise = send_text_async(bot=context.bot,
+                                             chat_id=update.message.chat_id,
+                                             text=messages.LOADING)
 
     count = restapiservice.get_quotes_count(context.args)
     pages = int((count + PAGE_SIZE - 1) / PAGE_SIZE)
@@ -89,9 +89,9 @@ def quotes_handler(update: Update, context: CallbackContext) -> None:
                message=message)
 
     if count > 0:
-        message_async: Promise = send_async(bot=context.bot,
-                                            chat_id=update.message.chat_id,
-                                            text=messages.LOADING)
+        message_async: Promise = send_text_async(bot=context.bot,
+                                                 chat_id=update.message.chat_id,
+                                                 text=messages.LOADING)
 
         quotes = restapiservice.get_quotes(context.args, 1, PAGE_SIZE)
 
@@ -126,9 +126,9 @@ def quote_handler(update: Update, context: CallbackContext) -> None:
 
 @command_handler
 def persons_handler(update: Update, context: CallbackContext) -> None:
-    message_async: Promise = send_async(bot=context.bot,
-                                        chat_id=update.message.chat_id,
-                                        text=messages.LOADING)
+    message_async: Promise = send_text_async(bot=context.bot,
+                                             chat_id=update.message.chat_id,
+                                             text=messages.LOADING)
 
     persons = restapiservice.get_persons(context.args)
     count = len(persons)
@@ -155,46 +155,46 @@ def persons_handler(update: Update, context: CallbackContext) -> None:
 @command_handler
 def subscribe_handler(update: Update, context: CallbackContext) -> None:
     if len(context.args) != 1:
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.NO_TIME_ARGUMENT)
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.NO_TIME_ARGUMENT)
         return
 
     raw_time = context.args[0]
     user_id = update.message.from_user.id
 
     if user_id in subscriptions and raw_time == subscriptions[user_id][1]:
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.ALREADY_SUBSCRIBED(raw_time))
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.ALREADY_SUBSCRIBED(raw_time))
         return
 
     if not re.match(r'^\d\d:\d\d$', raw_time):
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.INCORRECT_TIME_FORMAT)
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.INCORRECT_TIME_FORMAT)
         return
     hour, minute = [int(x) for x in raw_time.split(':')]
 
     if hour > 23:
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.INVALID_HOUR)
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.INVALID_HOUR)
         return
 
     if minute > 59:
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.INVALID_MINUTE)
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.INVALID_MINUTE)
         return
 
     if user_id in subscriptions:
         job, sub_time = subscriptions[user_id]
         job.schedule_removal()
 
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.SUBSCRIPTION_REMOVED(sub_time))
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.SUBSCRIPTION_REMOVED(sub_time))
 
     job = context.job_queue.run_daily(callback=send_quote_of_the_day_to_chat(update.message.chat_id),
                                       time=time(hour=hour,
@@ -202,34 +202,34 @@ def subscribe_handler(update: Update, context: CallbackContext) -> None:
     subscriptions[user_id] = job, raw_time
     save_subscriptions()
 
-    send_async(bot=context.bot,
-               chat_id=update.message.chat_id,
-               text=messages.SUBSCRIPTION_SUCCESSFUL(raw_time))
+    send_text_async(bot=context.bot,
+                    chat_id=update.message.chat_id,
+                    text=messages.SUBSCRIPTION_SUCCESSFUL(raw_time))
 
 
 @command_handler
 def unsubscribe_handler(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if user_id not in subscriptions:
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.NOT_SUBSCRIBED)
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.NOT_SUBSCRIBED)
         return
 
     job, sub_time = subscriptions[user_id]
     job.schedule_removal()
     subscriptions.pop(user_id)
     save_subscriptions()
-    send_async(bot=context.bot,
-               chat_id=update.message.chat_id,
-               text=messages.SUBSCRIPTION_REMOVED(sub_time))
+    send_text_async(bot=context.bot,
+                    chat_id=update.message.chat_id,
+                    text=messages.SUBSCRIPTION_REMOVED(sub_time))
 
 
 @command_handler
 def random_handler(update: Update, context: CallbackContext) -> None:
-    message_async: Promise = send_async(bot=context.bot,
-                                        chat_id=update.message.chat_id,
-                                        text=messages.LOADING)
+    message_async: Promise = send_text_async(bot=context.bot,
+                                             chat_id=update.message.chat_id,
+                                             text=messages.LOADING)
 
     quote = restapiservice.get_quote_random(context.args)
 
@@ -243,9 +243,9 @@ def random_handler(update: Update, context: CallbackContext) -> None:
 
 @command_handler
 def help_handler(update: Update, context: CallbackContext) -> None:
-    send_async(bot=context.bot,
-               chat_id=update.message.chat_id,
-               text=messages.HELP)
+    send_text_async(bot=context.bot,
+                    chat_id=update.message.chat_id,
+                    text=messages.HELP)
 
 
 @query_handler
@@ -290,18 +290,18 @@ def person_handler(update: Update, context: CallbackContext) -> None:
 @admin_command_handler
 def whitelist_handler(update: Update, context: CallbackContext) -> None:
     if len(context.args) != 1:
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.NO_USER_ID_ARGUMENT)
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.NO_USER_ID_ARGUMENT)
         return
 
     chat_id = int(context.args[0])
     try:
         chat = context.bot.get_chat(chat_id=chat_id)
     except BadRequest:
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.USER_NOT_FOUND)
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.USER_NOT_FOUND)
         return
 
     whitelist(user_chat=chat,
@@ -312,18 +312,18 @@ def whitelist_handler(update: Update, context: CallbackContext) -> None:
 @admin_command_handler
 def blacklist_handler(update: Update, context: CallbackContext) -> None:
     if len(context.args) != 1:
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.NO_USER_ID_ARGUMENT)
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.NO_USER_ID_ARGUMENT)
         return
 
     chat_id = int(context.args[0])
     try:
         chat = context.bot.get_chat(chat_id=chat_id)
     except BadRequest:
-        send_async(bot=context.bot,
-                   chat_id=update.message.chat_id,
-                   text=messages.USER_NOT_FOUND)
+        send_text_async(bot=context.bot,
+                        chat_id=update.message.chat_id,
+                        text=messages.USER_NOT_FOUND)
         return
 
     blacklist(user_chat=chat,
@@ -353,9 +353,9 @@ def accept_handler(update: Update, context: CallbackContext) -> None:
     if whitelist(user_chat=chat,
                  chat_id=query.message.chat_id,
                  context=context):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.WHITELIST_REQUEST_ACCEPTED)
+        send_text_async(bot=context.bot,
+                        chat_id=chat_id,
+                        text=messages.WHITELIST_REQUEST_ACCEPTED)
 
 
 @admin_query_handler
@@ -371,9 +371,9 @@ def deny_handler(update: Update, context: CallbackContext) -> None:
     if blacklist(user_chat=chat,
                  chat_id=query.message.chat_id,
                  context=context):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.WHITELIST_REQUEST_DENIED)
+        send_text_async(bot=context.bot,
+                        chat_id=chat_id,
+                        text=messages.WHITELIST_REQUEST_DENIED)
 
 
 def error_handler(update: Update, context: CallbackContext) -> None:
@@ -398,9 +398,9 @@ def error_handler(update: Update, context: CallbackContext) -> None:
 
 
 def unknown_handler(update: Update, context: CallbackContext) -> None:
-    send_async(bot=context.bot,
-               chat_id=update.message.chat_id,
-               text=messages.UNKNOWN_COMMAND)
+    send_text_async(bot=context.bot,
+                    chat_id=update.message.chat_id,
+                    text=messages.UNKNOWN_COMMAND)
 
 
 if __name__ == '__main__':
@@ -431,7 +431,8 @@ if __name__ == '__main__':
                                                 pattern=r'^D'))
     dispatcher.add_error_handler(error_handler)
     dispatcher.add_handler(MessageHandler(Filters.command, unknown_handler))
-    dispatcher.add_handler(MessageHandler(Filters.text, top_secret_handler))
+    dispatcher.add_handler(MessageHandler(Filters.text, top_secret_text_handler))
+    dispatcher.add_handler(MessageHandler(Filters.sticker, top_secret_sticker_handler))
     try:
         updater.start_polling()
         logging.info("Successfully started polling.")

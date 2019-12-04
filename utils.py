@@ -2,7 +2,7 @@ import logging
 from typing import Union, Callable, Dict
 
 import yaml
-from telegram import Bot, InlineKeyboardMarkup, Update, Message, User, InlineKeyboardButton, ReplyMarkup, Chat
+from telegram import Bot, InlineKeyboardMarkup, Update, Message, User, InlineKeyboardButton, ReplyMarkup, Chat, Sticker
 from telegram.ext import CallbackContext
 from telegram.ext.dispatcher import run_async
 
@@ -16,34 +16,34 @@ requests_file = 'requests.yml'
 
 def read(filename: str) -> Dict[int, str]:
     try:
-        with open(filename) as file:
+        with open(filename, encoding='UTF-8') as file:
             return yaml.safe_load(file) or {}
     except FileNotFoundError:
         return {}
 
 
 def append(filename: str, user_chat: Union[User, Chat]) -> None:
-    with open(filename) as file:
+    with open(filename, encoding='UTF-8') as file:
         users: Dict = yaml.safe_load(file) or {}
     users.update({user_chat.id: messages.USERNAME(user_chat)})
-    with open(filename, 'w') as file:
+    with open(filename, mode='w', encoding='UTF-8') as file:
         yaml.safe_dump(users, file)
 
 
 def remove(filename: str, user_chat: Union[User, Chat]) -> None:
-    with open(filename, 'r') as file:
+    with open(filename, encoding='UTF-8') as file:
         users: Dict = yaml.safe_load(file) or {}
     if user_chat.id in users:
         users.pop(user_chat.id)
-        with open(filename, 'w') as file:
+        with open(filename, mode='w', encoding='UTF-8') as file:
             yaml.safe_dump(users, file)
 
 
 def whitelist(user_chat: Union[User, Chat], chat_id: int, context: CallbackContext) -> bool:
     if user_chat.id in read(whitelist_file) or user_chat.id in read(administrators_file):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.ALREADY_WHITELISTED(user_chat))
+        send_text_async(bot=context.bot,
+                        chat_id=chat_id,
+                        text=messages.ALREADY_WHITELISTED(user_chat))
         return False
 
     if user_chat.id in read(blacklist_file):
@@ -56,24 +56,24 @@ def whitelist(user_chat: Union[User, Chat], chat_id: int, context: CallbackConte
     remove(filename=requests_file,
            user_chat=user_chat)
 
-    send_async(bot=context.bot,
-               chat_id=chat_id,
-               text=messages.USER_WHITELISTED(user_chat))
+    send_text_async(bot=context.bot,
+                    chat_id=chat_id,
+                    text=messages.USER_WHITELISTED(user_chat))
 
     return True
 
 
 def blacklist(user_chat: Union[User, Chat], chat_id: int, context: CallbackContext) -> bool:
     if user_chat.id in read(administrators_file):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.CANNOT_BLACKLIST_ADMINISTRATOR)
+        send_text_async(bot=context.bot,
+                        chat_id=chat_id,
+                        text=messages.CANNOT_BLACKLIST_ADMINISTRATOR)
         return False
 
     if user_chat.id in read(blacklist_file):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.ALREADY_BLACKLISTED(user_chat))
+        send_text_async(bot=context.bot,
+                        chat_id=chat_id,
+                        text=messages.ALREADY_BLACKLISTED(user_chat))
         return False
 
     if user_chat.id in read(whitelist_file):
@@ -86,9 +86,9 @@ def blacklist(user_chat: Union[User, Chat], chat_id: int, context: CallbackConte
     remove(filename=requests_file,
            user_chat=user_chat)
 
-    send_async(bot=context.bot,
-               chat_id=chat_id,
-               text=messages.USER_BLACKLISTED(user_chat))
+    send_text_async(bot=context.bot,
+                    chat_id=chat_id,
+                    text=messages.USER_BLACKLISTED(user_chat))
 
     return True
 
@@ -97,17 +97,17 @@ def is_authorized(user_chat: Union[User, Chat], chat_id: int, context: CallbackC
     if user_chat.id in read(administrators_file) or user_chat.id in read(whitelist_file):
         return True
     if user_chat.id in read(requests_file):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.PENDING)
+        send_text_async(bot=context.bot,
+                        chat_id=chat_id,
+                        text=messages.PENDING)
     elif user_chat.id in read(blacklist_file):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.BLACKLISTED)
+        send_text_async(bot=context.bot,
+                        chat_id=chat_id,
+                        text=messages.BLACKLISTED)
     else:
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=messages.NOT_WHITELISTED)
+        send_text_async(bot=context.bot,
+                        chat_id=chat_id,
+                        text=messages.NOT_WHITELISTED)
         append(filename=requests_file,
                user_chat=user_chat)
         keyboard = [[InlineKeyboardButton("Deny", callback_data=f"D{chat_id}"),
@@ -137,9 +137,9 @@ def command_handler(handler: Callable[[Update, CallbackContext], None]) -> Calla
                 handler(update, context)
         except Exception as err:
             if update.message.from_user.id not in read(administrators_file):
-                send_async(bot=context.bot,
-                           chat_id=update.callback_query.message.chat_id,
-                           text=messages.ERROR_OCCURRED)
+                send_text_async(bot=context.bot,
+                                chat_id=update.callback_query.message.chat_id,
+                                text=messages.ERROR_OCCURRED)
             raise err
 
     return func
@@ -153,9 +153,9 @@ def query_handler(handler: Callable[[Update, CallbackContext], None]) -> Callabl
                 handler(update, context)
         except Exception as err:
             if update.callback_query.from_user.id not in read(administrators_file):
-                send_async(bot=context.bot,
-                           chat_id=update.callback_query.message.chat_id,
-                           text=messages.ERROR_OCCURRED)
+                send_text_async(bot=context.bot,
+                                chat_id=update.callback_query.message.chat_id,
+                                text=messages.ERROR_OCCURRED)
             raise err
 
     return func
@@ -168,9 +168,9 @@ def admin_command_handler(handler: Callable[[Update, CallbackContext], None]) \
         if update.message.chat_id in read(administrators_file):
             handler(update, context)
         else:
-            send_async(bot=context.bot,
-                       chat_id=update.message.chat_id,
-                       text=messages.NO_PERMISSION)
+            send_text_async(bot=context.bot,
+                            chat_id=update.message.chat_id,
+                            text=messages.NO_PERMISSION)
             user = update.message.from_user
             command = update.message.text
             send_admins_async(text=messages.NO_PERMISSION_REPORT(user_chat=user,
@@ -187,9 +187,9 @@ def admin_query_handler(handler: Callable[[Update, CallbackContext], None]) \
         if update.callback_query.message.chat_id in read(administrators_file):
             handler(update, context)
         else:
-            send_async(bot=context.bot,
-                       chat_id=update.message.chat_id,
-                       text=messages.NO_PERMISSION)
+            send_text_async(bot=context.bot,
+                            chat_id=update.message.chat_id,
+                            text=messages.NO_PERMISSION)
             user = update.callback_query.from_user
             command = update.message.text
             send_admins_async(text=messages.NO_PERMISSION_REPORT(user_chat=user,
@@ -203,24 +203,32 @@ def send_admins_async(text: str,
                       context: CallbackContext,
                       reply_markup: InlineKeyboardMarkup = None):
     for chat_id in read(administrators_file):
-        send_async(bot=context.bot,
-                   chat_id=chat_id,
-                   text=text,
-                   reply_markup=reply_markup)
+        send_text_async(bot=context.bot,
+                        chat_id=chat_id,
+                        text=text,
+                        reply_markup=reply_markup)
 
 
 @run_async
-def send_async(bot: Bot,
-               chat_id: Union[int, str],
-               text: str,
-               disable_web_page_preview: bool = True,
-               reply_to_message_id: int = None,
-               reply_markup: ReplyMarkup = None):
+def send_text_async(bot: Bot,
+                    chat_id: Union[int, str],
+                    text: str,
+                    disable_web_page_preview: bool = True,
+                    reply_to_message_id: int = None,
+                    reply_markup: ReplyMarkup = None):
     return bot.sendMessage(chat_id=chat_id,
                            text=text,
                            display_web_page_preview=disable_web_page_preview,
                            reply_to_message_id=reply_to_message_id,
                            reply_markup=reply_markup)
+
+
+@run_async
+def send_sticker_async(bot: Bot,
+                       chat_id: Union[int, str],
+                       sticker: Union[str, Sticker]):
+    return bot.sendSticker(chat_id=chat_id,
+                           sticker=sticker)
 
 
 @run_async
