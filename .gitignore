@@ -1,6 +1,7 @@
 .idea
 administrators.yml
 blacklist.yml
+bot.log
 requests.yml
 subscriptions.yml
 token.txt

@@ -16,7 +16,12 @@ import messages
 from utils import send_async, command_handler, edit_async, query_handler, send_admins_async, admin_command_handler, \
     whitelist, blacklist, admin_query_handler, remove_markup
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler("bot.log"),
+        logging.StreamHandler()
+    ])
 
 PAGE_SIZE = 5
 
@@ -388,6 +393,7 @@ def error_handler(update: Update, context: CallbackContext) -> None:
 
 
 if __name__ == '__main__':
+    logging.info("Started bot")
     with open(token_file) as t_file:
         token = t_file.readline()
     updater = Updater(token=token, use_context=True)
