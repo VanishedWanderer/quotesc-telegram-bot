@@ -137,6 +137,7 @@ NO_USER_ID_ARGUMENT = "Please specify the id of the user you want to whitelist."
 CANNOT_BLACKLIST_ADMINISTRATOR = "You cannot blacklist an administrator."
 PENDING = "Your whitelist request has to be accepted by an administrator before you can interact with this bot."
 USER_NOT_FOUND = "User was not found."
+UNKNOWN_COMMAND = "Unknown Command."
 LOADING = "loading..."
 USERNAME = format_username
 QUOTES_FOUND = format_quotes_found

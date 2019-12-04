@@ -116,16 +116,17 @@ def is_authorized(user_chat: Union[User, Chat], chat_id: int, context: CallbackC
     return False
 
 
-def is_whitelisted(user_id: int):
+def is_whitelisted(user_id: int) -> bool:
     return user_id in read(whitelist_file)
 
 
-def is_blacklisted(user_id: int):
+def is_blacklisted(user_id: int) -> bool:
     return user_id in read(blacklist_file)
 
 
 def command_handler(handler: Callable[[Update, CallbackContext], None]) -> Callable[[Update, CallbackContext], None]:
-    def func(update: Update, context: CallbackContext):
+
+    def func(update: Update, context: CallbackContext) -> None:
         if update.edited_message:
             return
         try:
@@ -143,7 +144,8 @@ def command_handler(handler: Callable[[Update, CallbackContext], None]) -> Calla
 
 
 def query_handler(handler: Callable[[Update, CallbackContext], None]) -> Callable[[Update, CallbackContext], None]:
-    def func(update: Update, context: CallbackContext):
+
+    def func(update: Update, context: CallbackContext) -> None:
         try:
             logging.info(f"Query {update.callback_query.data} by {messages.USERNAME(update.callback_query.from_user)}")
             if is_authorized(update.callback_query.from_user, update.callback_query.message.chat_id, context):
@@ -160,8 +162,9 @@ def query_handler(handler: Callable[[Update, CallbackContext], None]) -> Callabl
 
 def admin_command_handler(handler: Callable[[Update, CallbackContext], None]) \
         -> Callable[[Update, CallbackContext], None]:
+
     @command_handler
-    def func(update: Update, context: CallbackContext):
+    def func(update: Update, context: CallbackContext) -> None:
         if update.message.chat_id in read(administrators_file):
             handler(update, context)
         else:
@@ -179,8 +182,9 @@ def admin_command_handler(handler: Callable[[Update, CallbackContext], None]) \
 
 def admin_query_handler(handler: Callable[[Update, CallbackContext], None]) \
         -> Callable[[Update, CallbackContext], None]:
+
     @query_handler
-    def func(update: Update, context: CallbackContext):
+    def func(update: Update, context: CallbackContext) -> None:
         if update.callback_query.message.chat_id in read(administrators_file):
             handler(update, context)
         else:
@@ -235,6 +239,6 @@ def edit_async(text: str,
 
 @run_async
 def remove_markup(bot: Bot,
-                  message: Message):
+                  message: Message) -> None:
     bot.editMessageReplyMarkup(chat_id=message.chat_id,
                                message_id=message.message_id)

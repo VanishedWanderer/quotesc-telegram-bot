@@ -8,7 +8,7 @@ from typing import Dict, Tuple, Callable
 import yaml
 from telegram import Update, InlineKeyboardButton, Message, InlineKeyboardMarkup, CallbackQuery
 from telegram.error import Unauthorized, BadRequest
-from telegram.ext import CommandHandler, CallbackContext, Job, CallbackQueryHandler, Updater
+from telegram.ext import CommandHandler, CallbackContext, Job, CallbackQueryHandler, Updater, MessageHandler, Filters
 from telegram.utils.promise import Promise
 
 import restapiservice
@@ -30,7 +30,7 @@ subscriptions_file = 'subscriptions.yml'
 token_file = 'token.txt'
 
 
-def load_subscriptions():
+def load_subscriptions() -> None:
     with open(subscriptions_file) as s_file:
         subs = yaml.safe_load(s_file)
     if not subs:
@@ -43,7 +43,7 @@ def load_subscriptions():
         subscriptions[chat_id] = job, raw_time
 
 
-def save_subscriptions():
+def save_subscriptions() -> None:
     subs = {}
     for chat_id in subscriptions:
         subs[chat_id] = subscriptions[chat_id][1]
@@ -51,7 +51,7 @@ def save_subscriptions():
         yaml.safe_dump(subs, s_file)
 
 
-def send_quote_of_the_day(chat_id: int, context: CallbackContext):
+def send_quote_of_the_day(chat_id: int, context: CallbackContext) -> None:
     message_async: Promise = send_async(bot=context.bot,
                                         chat_id=chat_id,
                                         text=messages.LOADING)
@@ -67,14 +67,15 @@ def send_quote_of_the_day(chat_id: int, context: CallbackContext):
 
 
 def send_quote_of_the_day_to_chat(chat_id: int) -> Callable[[CallbackContext], None]:
-    def fun(ctxt: CallbackContext):
+
+    def fun(ctxt: CallbackContext) -> None:
         send_quote_of_the_day(chat_id, ctxt)
 
     return fun
 
 
 @command_handler
-def quotes_handler(update: Update, context: CallbackContext):
+def quotes_handler(update: Update, context: CallbackContext) -> None:
     message_async: Promise = send_async(bot=context.bot,
                                         chat_id=update.message.chat_id,
                                         text=messages.LOADING)
@@ -113,13 +114,18 @@ def quotes_handler(update: Update, context: CallbackContext):
 
 
 @command_handler
-def quote_of_the_day_handler(update: Update, context: CallbackContext):
+def quote_of_the_day_handler(update: Update, context: CallbackContext) -> None:
     send_quote_of_the_day(chat_id=update.message.chat_id,
                           context=context)
 
 
 @command_handler
-def persons_handler(update: Update, context: CallbackContext):
+def quote_handler(update: Update, context: CallbackContext) -> None:
+    pass
+
+
+@command_handler
+def persons_handler(update: Update, context: CallbackContext) -> None:
     message_async: Promise = send_async(bot=context.bot,
                                         chat_id=update.message.chat_id,
                                         text=messages.LOADING)
@@ -147,7 +153,7 @@ def persons_handler(update: Update, context: CallbackContext):
 
 
 @command_handler
-def subscribe_handler(update: Update, context: CallbackContext):
+def subscribe_handler(update: Update, context: CallbackContext) -> None:
     if len(context.args) != 1:
         send_async(bot=context.bot,
                    chat_id=update.message.chat_id,
@@ -202,7 +208,7 @@ def subscribe_handler(update: Update, context: CallbackContext):
 
 
 @command_handler
-def unsubscribe_handler(update: Update, context: CallbackContext):
+def unsubscribe_handler(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     if user_id not in subscriptions:
         send_async(bot=context.bot,
@@ -220,7 +226,7 @@ def unsubscribe_handler(update: Update, context: CallbackContext):
 
 
 @command_handler
-def random_handler(update: Update, context: CallbackContext):
+def random_handler(update: Update, context: CallbackContext) -> None:
     message_async: Promise = send_async(bot=context.bot,
                                         chat_id=update.message.chat_id,
                                         text=messages.LOADING)
@@ -392,6 +398,12 @@ def error_handler(update: Update, context: CallbackContext) -> None:
     logging.error(f"End of error: {code}")
 
 
+def unknown_handler(update: Update, context: CallbackContext) -> None:
+    send_async(bot=context.bot,
+               chat_id=update.message.chat_id,
+               text=messages.UNKNOWN_COMMAND)
+
+
 if __name__ == '__main__':
     logging.info("Started bot")
     with open(token_file) as t_file:
@@ -419,6 +431,7 @@ if __name__ == '__main__':
     dispatcher.add_handler(CallbackQueryHandler(callback=deny_handler,
                                                 pattern=r'^D'))
     dispatcher.add_error_handler(error_handler)
+    dispatcher.add_handler(MessageHandler(Filters.command, unknown_handler))
     try:
         updater.start_polling()
         logging.info("Successfully started polling.")
