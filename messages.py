@@ -23,6 +23,7 @@ USER_BLACKLISTED_TEMPLATE = "User {} was blacklisted."
 USER_WHITELISTED_TEMPLATE = "User {} was whitelisted."
 ALREADY_BLACKLISTED_TEMPLATE = "User {} is already blacklisted."
 ALREADY_WHITELISTED_TEMPLATE = "User {} is already whitelisted."
+BOT_STOPPED_TEMPLATE = "Bot was stopped by {}."
 
 
 def format_username(user_chat: Union[User, Chat]):
@@ -116,6 +117,10 @@ def format_already_whitelisted(user_chat: Union[User, Chat]) -> str:
     return ALREADY_WHITELISTED_TEMPLATE.format(format_username(user_chat))
 
 
+def format_bot_stopped(user: User):
+    return BOT_STOPPED_TEMPLATE.format(format_username(user))
+
+
 ERROR_OCCURRED = "An error occurred. This problem will be automatically reported to the administrators."
 HELP = \
     """
@@ -156,3 +161,4 @@ USER_BLACKLISTED = format_user_blacklisted
 USER_WHITELISTED = format_user_whitelisted
 ALREADY_BLACKLISTED = format_already_blacklisted
 ALREADY_WHITELISTED = format_already_whitelisted
+BOT_STOPPED = format_bot_stopped

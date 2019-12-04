@@ -333,6 +333,9 @@ def blacklist_handler(update: Update, context: CallbackContext) -> None:
 
 @admin_command_handler
 def stop_handler(update: Update, context: CallbackContext) -> None:
+    send_admins_async(text=messages.BOT_STOPPED(update.message.from_user),
+                      bot=context.bot)
+
     def stop():
         updater.is_idle = False
         updater.stop()

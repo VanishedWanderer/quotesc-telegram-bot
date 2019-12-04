@@ -199,11 +199,12 @@ def admin_query_handler(handler: Callable[[Update, CallbackContext], None]) \
     return func
 
 
+@run_async
 def send_admins_async(text: str,
-                      context: CallbackContext,
+                      bot: Bot,
                       reply_markup: InlineKeyboardMarkup = None):
     for chat_id in read(administrators_file):
-        send_text_async(bot=context.bot,
+        send_text_async(bot=bot,
                         chat_id=chat_id,
                         text=text,
                         reply_markup=reply_markup)
