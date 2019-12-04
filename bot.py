@@ -1,12 +1,13 @@
 import logging
 import random
 import re
+import threading
 from datetime import time
 from typing import Dict, Tuple, Callable
 
 import yaml
 from telegram import Update, InlineKeyboardButton, Message, InlineKeyboardMarkup, CallbackQuery
-from telegram.error import Unauthorized
+from telegram.error import Unauthorized, BadRequest
 from telegram.ext import CommandHandler, CallbackContext, Job, CallbackQueryHandler, Updater
 from telegram.utils.promise import Promise
 
@@ -283,9 +284,16 @@ def whitelist_handler(update: Update, context: CallbackContext) -> None:
                    text=messages.NO_USER_ID_ARGUMENT)
         return
 
-    user_id = int(context.args[0])
+    chat_id = int(context.args[0])
+    try:
+        chat = context.bot.get_chat(chat_id=chat_id)
+    except BadRequest:
+        send_async(bot=context.bot,
+                   chat_id=update.message.chat_id,
+                   text=messages.USER_NOT_FOUND)
+        return
 
-    whitelist(user_id=user_id,
+    whitelist(user_chat=chat,
               chat_id=update.message.chat_id,
               context=context)
 
@@ -298,23 +306,41 @@ def blacklist_handler(update: Update, context: CallbackContext) -> None:
                    text=messages.NO_USER_ID_ARGUMENT)
         return
 
-    user_id = int(context.args[0])
+    chat_id = int(context.args[0])
+    try:
+        chat = context.bot.get_chat(chat_id=chat_id)
+    except BadRequest:
+        send_async(bot=context.bot,
+                   chat_id=update.message.chat_id,
+                   text=messages.USER_NOT_FOUND)
+        return
 
-    blacklist(user_id=user_id,
+    blacklist(user_chat=chat,
               chat_id=update.message.chat_id,
               context=context)
+
+
+@admin_command_handler
+def stop_handler(update: Update, context: CallbackContext) -> None:
+
+    def stop():
+        updater.is_idle = False
+        updater.stop()
+
+    threading.Thread(target=stop).start()
 
 
 @admin_query_handler
 def accept_handler(update: Update, context: CallbackContext) -> None:
     query: CallbackQuery = update.callback_query
-    [user_id, chat_id] = [int(x) for x in query.data[1:].split(';')]
 
-    #remove_markup(bot=context.bot,
-    #              message=query.message)
+    remove_markup(bot=context.bot,
+                  message=query.message)
 
-    if whitelist(user_id=user_id,
-                 chat_id=query.message.chat_id,
+    chat_id = int(query.data[1:])
+    chat = context.bot.get_chat(chat_id=chat_id)
+
+    if whitelist(user_chat=chat,
                  context=context):
         send_async(bot=context.bot,
                    chat_id=chat_id,
@@ -324,13 +350,14 @@ def accept_handler(update: Update, context: CallbackContext) -> None:
 @admin_query_handler
 def deny_handler(update: Update, context: CallbackContext) -> None:
     query: CallbackQuery = update.callback_query
-    [user_id, chat_id] = [int(x) for x in query.data[1:].split(';')]
 
     remove_markup(bot=context.bot,
                   message=query.message)
 
-    if blacklist(user_id=user_id,
-                 chat_id=query.message.chat_id,
+    chat_id = int(query.data[1:])
+    chat = context.bot.get_chat(chat_id=chat_id)
+
+    if blacklist(user_chat=chat,
                  context=context):
         send_async(bot=context.bot,
                    chat_id=chat_id,
@@ -342,17 +369,17 @@ def error_handler(update: Update, context: CallbackContext) -> None:
     logging.error(f"\nError code: {code}")
     if update.message:
         command = update.message.text
-        username = update.message.from_user.name
-        send_admins_async(text=messages.ERROR_COMMAND(command, username, code),
+        user = update.message.from_user
+        send_admins_async(text=messages.ERROR_COMMAND(command, user, code),
                           context=context)
-        logging.error(f"Command: {command} by user {username}")
+        logging.error(f"Command: {command} by user {messages.USERNAME(user)}")
     if update.callback_query:
         query: CallbackQuery = update.callback_query
         data = query.data
-        username = query.from_user.username
-        send_admins_async(text=messages.ERROR_QUERY(data, username, code),
+        user = query.from_user
+        send_admins_async(text=messages.ERROR_QUERY(data, user, code),
                           context=context)
-        logging.error(f"Query: {data} by user {username}")
+        logging.error(f"Query: {data} by user {messages.USERNAME(user)}")
 
     logging.exception(context.error)
     logging.error(f"End of error: {code}")
@@ -374,6 +401,7 @@ if __name__ == '__main__':
     dispatcher.add_handler(CommandHandler('help', help_handler))
     dispatcher.add_handler(CommandHandler('whitelist', whitelist_handler))
     dispatcher.add_handler(CommandHandler('blacklist', blacklist_handler))
+    dispatcher.add_handler(CommandHandler('stop', stop_handler))
     dispatcher.add_handler(CallbackQueryHandler(callback=quotes_page_handler,
                                                 pattern=r'^Q'))
     dispatcher.add_handler(CallbackQueryHandler(callback=person_handler,
@@ -387,5 +415,6 @@ if __name__ == '__main__':
         updater.start_polling()
         logging.info("Successfully started polling.")
         updater.idle()
+        logging.info("Stopped bot gracefully.")
     except Unauthorized as err:
         logging.error("Your token seems to be incorrect, bot was not able to start polling.")

@@ -1,7 +1,8 @@
 import logging
-from typing import Union, Callable, List
+from typing import Union, Callable, Dict
 
-from telegram import Bot, InlineKeyboardMarkup, Update, Message, User, InlineKeyboardButton, ReplyMarkup
+import yaml
+from telegram import Bot, InlineKeyboardMarkup, Update, Message, User, InlineKeyboardButton, ReplyMarkup, Chat
 from telegram.ext import CallbackContext
 from telegram.ext.dispatcher import run_async
 
@@ -13,84 +14,83 @@ whitelist_file = 'whitelist.yml'
 requests_file = 'requests.yml'
 
 
-def read(filename: str) -> List[int]:
+def read(filename: str) -> Dict[int, str]:
     with open(filename) as file:
-        return [int(line) for line in file.readlines()]
+        return yaml.safe_load(file) or {}
 
 
-def append(filename: str, user_id: int) -> None:
+def append(filename: str, user_chat: Union[User, Chat]) -> None:
     with open(filename) as file:
-        user_ids = file.readlines()
-    user_ids.append(str(user_id) + '\n')
+        users: Dict = yaml.safe_load(file) or {}
+    users.update({user_chat.id: messages.USERNAME(user_chat)})
     with open(filename, 'w') as file:
-        file.writelines(user_ids)
+        yaml.safe_dump(users, file)
 
 
-def remove(filename: str, user_id: int) -> None:
+def remove(filename: str, user_chat: Union[User, Chat]) -> None:
     with open(filename, 'r') as file:
-        user_ids = file.readlines()
-    user_ids.remove(str(user_id) + '\n')
+        users: Dict = yaml.safe_load(file) or {}
+    users.pop(user_chat.id)
     with open(filename, 'w') as file:
-        file.writelines(user_ids)
+        yaml.safe_dump(users, file)
 
 
-def whitelist(user_id: int, chat_id: int, context: CallbackContext) -> bool:
-    if user_id in read(whitelist_file) or user_id in read(administrators_file):
+def whitelist(user_chat: Union[User, Chat], chat_id: int, context: CallbackContext) -> bool:
+    if user_chat.id in read(whitelist_file) or user_chat.id in read(administrators_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.ALREADY_WHITELISTED)
         return False
 
-    if user_id in read(blacklist_file):
+    if user_chat.id in read(blacklist_file):
         remove(filename=blacklist_file,
-               user_id=user_id)
+               user_chat=user_chat)
 
     append(filename=whitelist_file,
-           user_id=user_id)
+           user_chat=user_chat)
 
     send_async(bot=context.bot,
                chat_id=chat_id,
-               text=messages.USER_WHITELISTED)
+               text=messages.USER_WHITELISTED(user_chat))
 
     return True
 
 
-def blacklist(user_id: int, chat_id: int, context: CallbackContext) -> bool:
-    if user_id in read(administrators_file):
+def blacklist(user_chat: Union[User, Chat], chat_id: int, context: CallbackContext) -> bool:
+    if user_chat.id in read(administrators_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.CANNOT_BLACKLIST_ADMINISTRATOR)
         return False
 
-    if user_id in read(blacklist_file):
+    if user_chat.id in read(blacklist_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.ALREADY_BLACKLISTED)
         return False
 
-    if user_id in read(whitelist_file):
+    if user_chat.id in read(whitelist_file):
         remove(filename=whitelist_file,
-               user_id=user_id)
+               user_chat=user_chat)
 
     append(filename=blacklist_file,
-           user_id=user_id)
+           user_chat=user_chat)
 
     send_async(bot=context.bot,
                chat_id=chat_id,
-               text=messages.USER_BLACKLISTED)
+               text=messages.USER_BLACKLISTED(user_chat))
 
     return True
 
 
-def is_authorized(user: User, chat_id: int, context: CallbackContext) -> bool:
-    user_id = user.id
-    if user_id in read(administrators_file) or user_id in read(whitelist_file):
+def is_authorized(user_chat: Union[User, Chat], chat_id: int, context: CallbackContext) -> bool:
+    if user_chat.id in read(administrators_file) or user_chat.id in read(whitelist_file):
         return True
-    if user_id in read(requests_file):
+    if user_chat.id in read(requests_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.PENDING)
-    elif user_id in read(blacklist_file):
+    elif user_chat.id in read(blacklist_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
                    text=messages.BLACKLISTED)
@@ -99,13 +99,11 @@ def is_authorized(user: User, chat_id: int, context: CallbackContext) -> bool:
                    chat_id=chat_id,
                    text=messages.NOT_WHITELISTED)
         append(filename=requests_file,
-               user_id=user_id)
-        username = user.username
-        keyboard = [[InlineKeyboardButton("Deny", callback_data=f"D{user_id};{chat_id}"),
-                     InlineKeyboardButton("Accept", callback_data=f"A{user_id};{chat_id}")]]
+               user_chat=user_chat)
+        keyboard = [[InlineKeyboardButton("Deny", callback_data=f"D{chat_id}"),
+                     InlineKeyboardButton("Accept", callback_data=f"A{chat_id}")]]
         markup = InlineKeyboardMarkup(keyboard)
-        send_admins_async(text=messages.WHITELIST_REQUEST(username=username,
-                                                          user_id=user_id),
+        send_admins_async(text=messages.WHITELIST_REQUEST(user_chat=user_chat),
                           context=context,
                           reply_markup=markup)
     return False
@@ -124,7 +122,7 @@ def command_handler(handler: Callable[[Update, CallbackContext], None]) -> Calla
         if update.edited_message:
             return
         try:
-            logging.info(f"Command {update.message.text} by {update.message.from_user.username}")
+            logging.info(f"Command {update.message.text} by {messages.USERNAME(update.message.from_user)}")
             if is_authorized(update.message.from_user, update.message.chat_id, context):
                 handler(update, context)
         except Exception as err:
@@ -140,7 +138,7 @@ def command_handler(handler: Callable[[Update, CallbackContext], None]) -> Calla
 def query_handler(handler: Callable[[Update, CallbackContext], None]) -> Callable[[Update, CallbackContext], None]:
     def func(update: Update, context: CallbackContext):
         try:
-            logging.info(f"Query {update.callback_query.data} by {update.callback_query.from_user.username}")
+            logging.info(f"Query {update.callback_query.data} by {messages.USERNAME(update.callback_query.from_user)}")
             if is_authorized(update.callback_query.from_user, update.callback_query.message.chat_id, context):
                 handler(update, context)
         except Exception as err:
@@ -163,9 +161,9 @@ def admin_command_handler(handler: Callable[[Update, CallbackContext], None]) \
             send_async(bot=context.bot,
                        chat_id=update.message.chat_id,
                        text=messages.NO_PERMISSION)
-            username = update.message.from_user.username
+            user = update.message.from_user
             command = update.message.text
-            send_admins_async(text=messages.NO_PERMISSION_REPORT(username=username,
+            send_admins_async(text=messages.NO_PERMISSION_REPORT(user_chat=user,
                                                                  command=command),
                               context=context)
 
@@ -182,9 +180,9 @@ def admin_query_handler(handler: Callable[[Update, CallbackContext], None]) \
             send_async(bot=context.bot,
                        chat_id=update.message.chat_id,
                        text=messages.NO_PERMISSION)
-            username = update.message.from_user.username
+            user = update.callback_query.from_user
             command = update.message.text
-            send_admins_async(text=messages.NO_PERMISSION_REPORT(username=username,
+            send_admins_async(text=messages.NO_PERMISSION_REPORT(user_chat=user,
                                                                  command=command),
                               context=context)
 

@@ -1,4 +1,6 @@
-from typing import List, Dict
+from typing import List, Dict, Union
+
+from telegram import User, Chat
 
 QUOTES_FOUND_TEMPLATE = "{} quotes found."
 PERSONS_FOUND_TEMPLATE = "{} persons found."
@@ -17,6 +19,17 @@ ERROR_QUERY_TEMPLATE = "An error occurred for query {} by user {}.\n" \
                                 "Code: {}"
 NO_PERMISSION_REPORT_TEMPLATE = "User {} tried to execute {} without admin privileges."
 WHITELIST_REQUEST_TEMPLATE = "User {} with user id {} wants to be whitelisted."
+USER_BLACKLISTED_TEMPLATE = "User {} was blacklisted."
+USER_WHITELISTED_TEMPLATE = "User {} was whitelisted."
+
+
+def format_username(user_chat: Union[User, Chat]):
+    username = user_chat.first_name
+    if user_chat.last_name:
+        username += f" {user_chat.last_name}"
+    if user_chat.username:
+        username += f" (@{user_chat.username})"
+    return username
 
 
 def format_quotes_found(count: int) -> str:
@@ -69,20 +82,28 @@ def format_subscription_successful(time: str) -> str:
     return SUBSCRIPTION_SUCCESSFUL_TEMPLATE.format(time)
 
 
-def format_error_command(command: str, username: str, code: int) -> str:
-    return ERROR_COMMAND_TEMPLATE.format(command, username, code)
+def format_error_command(command: str, user_chat: Union[User, Chat], code: int) -> str:
+    return ERROR_COMMAND_TEMPLATE.format(command, format_username(user_chat), code)
 
 
-def format_error_query(data: str, username: str, code: int) -> str:
-    return ERROR_QUERY_TEMPLATE.format(data, username, code)
+def format_error_query(data: str, user_chat: Union[User, Chat], code: int) -> str:
+    return ERROR_QUERY_TEMPLATE.format(data, format_username(user_chat), code)
 
 
-def format_no_permission_report(username: str, command: str) -> str:
-    return NO_PERMISSION_REPORT_TEMPLATE.format(username, command)
+def format_no_permission_report(user_chat: Union[User, Chat], command: str) -> str:
+    return NO_PERMISSION_REPORT_TEMPLATE.format(format_username(user_chat), command)
 
 
-def format_whitelist_request(username: str, user_id: int) -> str:
-    return WHITELIST_REQUEST_TEMPLATE.format(username, user_id)
+def format_whitelist_request(user_chat: Union[User, Chat]) -> str:
+    return WHITELIST_REQUEST_TEMPLATE.format(format_username(user_chat), user_chat.id)
+
+
+def format_user_blacklisted(user_chat: Union[User, Chat]) -> str:
+    return USER_BLACKLISTED_TEMPLATE.format(format_username(user_chat))
+
+
+def format_user_whitelisted(user_chat: Union[User, Chat]) -> str:
+    return USER_WHITELISTED_TEMPLATE.format(format_username(user_chat))
 
 
 ERROR_OCCURRED = "An error occurred. This problem will be automatically reported to the administrators."
@@ -105,11 +126,11 @@ BLACKLISTED = "You are blacklisted. Please contact an administrator if you do no
 NO_USER_ID_ARGUMENT = "Please specify the id of the user you want to whitelist."
 ALREADY_WHITELISTED = "User is already whitelisted."
 ALREADY_BLACKLISTED = "User is already blacklisted."
-USER_BLACKLISTED = "User was blacklisted."
-USER_WHITELISTED = "User was whitelisted."
 CANNOT_BLACKLIST_ADMINISTRATOR = "You cannot blacklist an administrator."
 PENDING = "Your whitelist request has to be accepted by an administrator before you can interact with this bot."
+USER_NOT_FOUND = "User was not found."
 LOADING = "loading..."
+USERNAME = format_username
 QUOTES_FOUND = format_quotes_found
 PERSONS_FOUND = format_persons_found
 QUOTES = format_quotes
@@ -122,3 +143,5 @@ ERROR_COMMAND = format_error_command
 ERROR_QUERY = format_error_query
 NO_PERMISSION_REPORT = format_no_permission_report
 WHITELIST_REQUEST = format_whitelist_request
+USER_BLACKLISTED = format_user_blacklisted
+USER_WHITELISTED = format_user_whitelisted
