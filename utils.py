@@ -30,9 +30,10 @@ def append(filename: str, user_chat: Union[User, Chat]) -> None:
 def remove(filename: str, user_chat: Union[User, Chat]) -> None:
     with open(filename, 'r') as file:
         users: Dict = yaml.safe_load(file) or {}
-    users.pop(user_chat.id)
-    with open(filename, 'w') as file:
-        yaml.safe_dump(users, file)
+    if user_chat.id in users:
+        users.pop(user_chat.id)
+        with open(filename, 'w') as file:
+            yaml.safe_dump(users, file)
 
 
 def whitelist(user_chat: Union[User, Chat], chat_id: int, context: CallbackContext) -> bool:
@@ -47,6 +48,9 @@ def whitelist(user_chat: Union[User, Chat], chat_id: int, context: CallbackConte
                user_chat=user_chat)
 
     append(filename=whitelist_file,
+           user_chat=user_chat)
+
+    remove(filename=requests_file,
            user_chat=user_chat)
 
     send_async(bot=context.bot,
@@ -74,6 +78,9 @@ def blacklist(user_chat: Union[User, Chat], chat_id: int, context: CallbackConte
                user_chat=user_chat)
 
     append(filename=blacklist_file,
+           user_chat=user_chat)
+
+    remove(filename=requests_file,
            user_chat=user_chat)
 
     send_async(bot=context.bot,
