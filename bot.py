@@ -13,6 +13,7 @@ from telegram.utils.promise import Promise
 
 import restapiservice
 import messages
+from top_secret import top_secret_handler
 from utils import send_async, command_handler, edit_async, query_handler, send_admins_async, admin_command_handler, \
     whitelist, blacklist, admin_query_handler, remove_markup
 
@@ -432,6 +433,7 @@ if __name__ == '__main__':
                                                 pattern=r'^D'))
     dispatcher.add_error_handler(error_handler)
     dispatcher.add_handler(MessageHandler(Filters.command, unknown_handler))
+    dispatcher.add_handler(MessageHandler(Filters.all, top_secret_handler))
     try:
         updater.start_polling()
         logging.info("Successfully started polling.")

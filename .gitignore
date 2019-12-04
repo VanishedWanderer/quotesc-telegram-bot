@@ -3,6 +3,7 @@ administrators.yml
 blacklist.yml
 bot.log
 requests.yml
+secrets.yml
 subscriptions.yml
 token.txt
 whitelist.yml

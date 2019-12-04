@@ -15,8 +15,11 @@ requests_file = 'requests.yml'
 
 
 def read(filename: str) -> Dict[int, str]:
-    with open(filename) as file:
-        return yaml.safe_load(file) or {}
+    try:
+        with open(filename) as file:
+            return yaml.safe_load(file) or {}
+    except FileNotFoundError:
+        return {}
 
 
 def append(filename: str, user_chat: Union[User, Chat]) -> None:
