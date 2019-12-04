@@ -39,7 +39,7 @@ def whitelist(user_chat: Union[User, Chat], chat_id: int, context: CallbackConte
     if user_chat.id in read(whitelist_file) or user_chat.id in read(administrators_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
-                   text=messages.ALREADY_WHITELISTED)
+                   text=messages.ALREADY_WHITELISTED(user_chat))
         return False
 
     if user_chat.id in read(blacklist_file):
@@ -66,7 +66,7 @@ def blacklist(user_chat: Union[User, Chat], chat_id: int, context: CallbackConte
     if user_chat.id in read(blacklist_file):
         send_async(bot=context.bot,
                    chat_id=chat_id,
-                   text=messages.ALREADY_BLACKLISTED)
+                   text=messages.ALREADY_BLACKLISTED(user_chat))
         return False
 
     if user_chat.id in read(whitelist_file):

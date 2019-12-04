@@ -21,6 +21,8 @@ NO_PERMISSION_REPORT_TEMPLATE = "User {} tried to execute {} without admin privi
 WHITELIST_REQUEST_TEMPLATE = "User {} with user id {} wants to be whitelisted."
 USER_BLACKLISTED_TEMPLATE = "User {} was blacklisted."
 USER_WHITELISTED_TEMPLATE = "User {} was whitelisted."
+ALREADY_BLACKLISTED_TEMPLATE = "User {} is already blacklisted."
+ALREADY_WHITELISTED_TEMPLATE = "User {} is already whitelisted."
 
 
 def format_username(user_chat: Union[User, Chat]):
@@ -106,6 +108,14 @@ def format_user_whitelisted(user_chat: Union[User, Chat]) -> str:
     return USER_WHITELISTED_TEMPLATE.format(format_username(user_chat))
 
 
+def format_already_blacklisted(user_chat: Union[User, Chat]) -> str:
+    return ALREADY_BLACKLISTED_TEMPLATE.format(format_username(user_chat))
+
+
+def format_already_whitelisted(user_chat: Union[User, Chat]) -> str:
+    return ALREADY_WHITELISTED_TEMPLATE.format(format_username(user_chat))
+
+
 ERROR_OCCURRED = "An error occurred. This problem will be automatically reported to the administrators."
 HELP = \
     """
@@ -124,8 +134,6 @@ WHITELIST_REQUEST_ACCEPTED = "Your whitelist request was accepted by an administ
 NOT_WHITELISTED = "You are not whitelisted. A whitelist request will be sent to the administrators."
 BLACKLISTED = "You are blacklisted. Please contact an administrator if you do not know why."
 NO_USER_ID_ARGUMENT = "Please specify the id of the user you want to whitelist."
-ALREADY_WHITELISTED = "User is already whitelisted."
-ALREADY_BLACKLISTED = "User is already blacklisted."
 CANNOT_BLACKLIST_ADMINISTRATOR = "You cannot blacklist an administrator."
 PENDING = "Your whitelist request has to be accepted by an administrator before you can interact with this bot."
 USER_NOT_FOUND = "User was not found."
@@ -145,3 +153,5 @@ NO_PERMISSION_REPORT = format_no_permission_report
 WHITELIST_REQUEST = format_whitelist_request
 USER_BLACKLISTED = format_user_blacklisted
 USER_WHITELISTED = format_user_whitelisted
+ALREADY_BLACKLISTED = format_already_blacklisted
+ALREADY_WHITELISTED = format_already_whitelisted

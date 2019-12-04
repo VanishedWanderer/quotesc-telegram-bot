@@ -341,6 +341,7 @@ def accept_handler(update: Update, context: CallbackContext) -> None:
     chat = context.bot.get_chat(chat_id=chat_id)
 
     if whitelist(user_chat=chat,
+                 chat_id=query.message.chat_id,
                  context=context):
         send_async(bot=context.bot,
                    chat_id=chat_id,
@@ -358,6 +359,7 @@ def deny_handler(update: Update, context: CallbackContext) -> None:
     chat = context.bot.get_chat(chat_id=chat_id)
 
     if blacklist(user_chat=chat,
+                 chat_id=query.message.chat_id,
                  context=context):
         send_async(bot=context.bot,
                    chat_id=chat_id,
