@@ -5,7 +5,6 @@ from typing import List, Dict
 
 import requests
 
-
 session = requests.Session()
 
 ACCEPT_APPLICATION_JSON = {'Accept': 'application/json'}

@@ -128,7 +128,6 @@ def is_blacklisted(user_id: int) -> bool:
 
 
 def command_handler(handler: Callable[[Update, CallbackContext], None]) -> Callable[[Update, CallbackContext], None]:
-
     def func(update: Update, context: CallbackContext) -> None:
         if update.edited_message:
             return
@@ -147,7 +146,6 @@ def command_handler(handler: Callable[[Update, CallbackContext], None]) -> Calla
 
 
 def query_handler(handler: Callable[[Update, CallbackContext], None]) -> Callable[[Update, CallbackContext], None]:
-
     def func(update: Update, context: CallbackContext) -> None:
         try:
             logging.info(f"Query {update.callback_query.data} by {messages.USERNAME(update.callback_query.from_user)}")
@@ -165,7 +163,6 @@ def query_handler(handler: Callable[[Update, CallbackContext], None]) -> Callabl
 
 def admin_command_handler(handler: Callable[[Update, CallbackContext], None]) \
         -> Callable[[Update, CallbackContext], None]:
-
     @command_handler
     def func(update: Update, context: CallbackContext) -> None:
         if update.message.chat_id in read(administrators_file):
@@ -185,7 +182,6 @@ def admin_command_handler(handler: Callable[[Update, CallbackContext], None]) \
 
 def admin_query_handler(handler: Callable[[Update, CallbackContext], None]) \
         -> Callable[[Update, CallbackContext], None]:
-
     @query_handler
     def func(update: Update, context: CallbackContext) -> None:
         if update.callback_query.message.chat_id in read(administrators_file):

@@ -11,8 +11,8 @@ from telegram.error import Unauthorized, BadRequest
 from telegram.ext import CommandHandler, CallbackContext, Job, CallbackQueryHandler, Updater, MessageHandler, Filters
 from telegram.utils.promise import Promise
 
-import restapiservice
 import messages
+import restapiservice
 from top_secret import top_secret_handler
 from utils import send_async, command_handler, edit_async, query_handler, send_admins_async, admin_command_handler, \
     whitelist, blacklist, admin_query_handler, remove_markup
@@ -68,7 +68,6 @@ def send_quote_of_the_day(chat_id: int, context: CallbackContext) -> None:
 
 
 def send_quote_of_the_day_to_chat(chat_id: int) -> Callable[[CallbackContext], None]:
-
     def fun(ctxt: CallbackContext) -> None:
         send_quote_of_the_day(chat_id, ctxt)
 
@@ -334,7 +333,6 @@ def blacklist_handler(update: Update, context: CallbackContext) -> None:
 
 @admin_command_handler
 def stop_handler(update: Update, context: CallbackContext) -> None:
-
     def stop():
         updater.is_idle = False
         updater.stop()

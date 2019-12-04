@@ -14,9 +14,9 @@ ALREADY_SUBSCRIBED_TEMPLATE = "You are already subscribed to the quote of the da
 SUBSCRIPTION_REMOVED_TEMPLATE = "Your subscription for {} was removed."
 SUBSCRIPTION_SUCCESSFUL_TEMPLATE = "You will receive the quote of the day every day at {}."
 ERROR_COMMAND_TEMPLATE = "An error occurred for command {} by user {}.\n" \
-                                  "Code: {}"
+                         "Code: {}"
 ERROR_QUERY_TEMPLATE = "An error occurred for query {} by user {}.\n" \
-                                "Code: {}"
+                       "Code: {}"
 NO_PERMISSION_REPORT_TEMPLATE = "User {} tried to execute {} without admin privileges."
 WHITELIST_REQUEST_TEMPLATE = "User {} with user id {} wants to be whitelisted."
 USER_BLACKLISTED_TEMPLATE = "User {} was blacklisted."
@@ -122,7 +122,7 @@ HELP = \
     yeet
 """
 NO_TIME_ARGUMENT = "Please specify the time at which you want to be notified.\n" \
-                        "Example: /subscribe 01:00"
+                   "Example: /subscribe 01:00"
 INCORRECT_TIME_FORMAT = "Incorrect time format. Please provide a time formatted like hh:mm."
 INVALID_HOUR = "The hour has to be between 00 and 23."
 INVALID_MINUTE = "The minute has to be between 00 and 59."
