@@ -27,7 +27,7 @@ def append(filename: str, user_chat: Union[User, Chat]) -> None:
         users: Dict = yaml.safe_load(file) or {}
     users.update({user_chat.id: messages.USERNAME(user_chat)})
     with open(filename, mode='w', encoding='UTF-8') as file:
-        yaml.safe_dump(users, file)
+        yaml.safe_dump(users, file, allow_unicode=True)
 
 
 def remove(filename: str, user_chat: Union[User, Chat]) -> None:
@@ -36,7 +36,7 @@ def remove(filename: str, user_chat: Union[User, Chat]) -> None:
     if user_chat.id in users:
         users.pop(user_chat.id)
         with open(filename, mode='w', encoding='UTF-8') as file:
-            yaml.safe_dump(users, file)
+            yaml.safe_dump(users, file, allow_unicode=True)
 
 
 def whitelist(user_chat: Union[User, Chat], chat_id: int, context: CallbackContext) -> bool:
@@ -114,7 +114,7 @@ def is_authorized(user_chat: Union[User, Chat], chat_id: int, context: CallbackC
                      InlineKeyboardButton("Accept", callback_data=f"A{chat_id}")]]
         markup = InlineKeyboardMarkup(keyboard)
         send_admins_async(text=messages.WHITELIST_REQUEST(user_chat=user_chat),
-                          context=context,
+                          bot=context.bot,
                           reply_markup=markup)
     return False
 
@@ -175,7 +175,7 @@ def admin_command_handler(handler: Callable[[Update, CallbackContext], None]) \
             command = update.message.text
             send_admins_async(text=messages.NO_PERMISSION_REPORT(user_chat=user,
                                                                  command=command),
-                              context=context)
+                              bot=context.bot)
 
     return func
 
@@ -194,12 +194,11 @@ def admin_query_handler(handler: Callable[[Update, CallbackContext], None]) \
             command = update.message.text
             send_admins_async(text=messages.NO_PERMISSION_REPORT(user_chat=user,
                                                                  command=command),
-                              context=context)
+                              bot=context.bot)
 
     return func
 
 
-@run_async
 def send_admins_async(text: str,
                       bot: Bot,
                       reply_markup: InlineKeyboardMarkup = None):
