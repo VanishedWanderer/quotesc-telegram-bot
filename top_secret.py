@@ -28,7 +28,8 @@ def top_secret_text_handler(update: Update, context: CallbackContext) -> None:
         logging.info(f"{messages.USERNAME(update.message.from_user)} discovered secret {text}!")
         send_text_async(bot=context.bot,
                         chat_id=update.message.chat_id,
-                        text=secrets[text.lower()])
+                        text=secrets[text.lower()],
+                        reply_to_message_id=update.message.message_id)
     else:
         logging.info(f"{messages.USERNAME(update.message.from_user)} sent {text}!")
 
@@ -40,6 +41,7 @@ def top_secret_sticker_handler(update: Update, context: CallbackContext) -> None
         logging.info(f"{messages.USERNAME(update.message.from_user)} discovered secret sticker {sticker}!")
         send_sticker_async(bot=context.bot,
                            chat_id=update.message.chat_id,
-                           sticker=secrets[sticker])
+                           sticker=secrets[sticker],
+                           reply_to_message_id=update.message.message_id)
     else:
         logging.info(f"{messages.USERNAME(update.message.from_user)} sent {sticker}!")

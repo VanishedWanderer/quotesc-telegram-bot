@@ -227,9 +227,11 @@ def send_text_async(bot: Bot,
 @run_async
 def send_sticker_async(bot: Bot,
                        chat_id: Union[int, str],
-                       sticker: Union[str, Sticker]):
+                       sticker: Union[str, Sticker],
+                       reply_to_message_id: int = None):
     return bot.sendSticker(chat_id=chat_id,
-                           sticker=sticker)
+                           sticker=sticker,
+                           reply_to_message_id=reply_to_message_id)
 
 
 @run_async
