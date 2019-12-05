@@ -21,7 +21,7 @@ def read(filename: str) -> Dict[str, Dict[str, str]]:
 
 def top_secret_text_handler(update: Update, context: CallbackContext) -> None:
     text: str = update.message.text
-    if text[-1] in "?!.":
+    while text[-1] in "?!.":
         text = text[:-1]
     secrets = read(secrets_file)['texts']
     if text.lower() in secrets:
