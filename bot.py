@@ -386,14 +386,14 @@ def error_handler(update: Update, context: CallbackContext) -> None:
         command = update.message.text
         user = update.message.from_user
         send_admins_async(text=messages.ERROR_COMMAND(command, user, code),
-                          context=context)
+                          bot=context.bot)
         logging.error(f"Command: {command} by user {messages.USERNAME(user)}")
     if update.callback_query:
         query: CallbackQuery = update.callback_query
         data = query.data
         user = query.from_user
         send_admins_async(text=messages.ERROR_QUERY(data, user, code),
-                          context=context)
+                          bot=context.bot)
         logging.error(f"Query: {data} by user {messages.USERNAME(user)}")
 
     logging.exception(context.error)
